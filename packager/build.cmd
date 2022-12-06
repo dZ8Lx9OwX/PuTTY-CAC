@@ -13,10 +13,10 @@ SET BINDIR=%INSTDIR%\..\binaries
 SET BLDDIR=%INSTDIR%\..\build
 
 :: cert info to use for signing
-SET CERT=055E5F445405B24790B32F75FE9049884F2F3788
-set TSAURL=http://time.certum.pl/
-set LIBNAME=PuTTY-CAC
-set LIBURL=https://github.com/NoMoreFood/putty-cac
+::SET CERT=055E5F445405B24790B32F75FE9049884F2F3788
+::set TSAURL=http://time.certum.pl/
+::set LIBNAME=PuTTY-CAC
+::set LIBURL=https://github.com/NoMoreFood/putty-cac
 
 :: import vs build tools
 FOR /F "DELIMS=" %%X IN ('DIR "%ProgramFiles%\Microsoft Visual Studio\VsDevCmd.bat" /A /S /B') DO SET VS=%%X
@@ -27,23 +27,23 @@ CD /D "%INSTDIR%"
 RD /S /Q "%BLDDIR%"
 RD /S /Q "%BINDIR%"
 CMAKE -S ..\code -A x64 -B %BLDDIR%\x64 -D PUTTY_CAC=1 -D PUTTY_EMBEDDED_CHM_FILE=%BASEDIR%\doc\putty.chm
-CMAKE --build %BLDDIR%\x64 --parallel --config Release --target pageant plink pscp psftp pterm putty puttygen puttyimp puttytel
+CMAKE --build %BLDDIR%\x64 --parallel --config Release --target pageant putty
 MKDIR "%BINDIR%\x64"
 COPY /Y %BLDDIR%\x64\Release\*.exe "%BINDIR%\x64"
 CMAKE -S ..\code -A Win32 -B %BLDDIR%\x86 -D PUTTY_CAC=1 -D PUTTY_EMBEDDED_CHM_FILE=%BASEDIR%\doc\putty.chm
-CMAKE --build %BLDDIR%\x86 --parallel --config Release --target pageant plink pscp psftp pterm putty puttygen puttyimp puttytel
+CMAKE --build %BLDDIR%\x86 --parallel --config Release --target pageant putty 
 MKDIR "%BINDIR%\x86"
 COPY /Y %BLDDIR%\x86\Release\*.exe "%BINDIR%\x86"
 
 :: determine 32-bit program files directory
-IF DEFINED ProgramFiles SET PX86=%ProgramFiles%
-IF DEFINED ProgramFiles(x86) SET PX86=%ProgramFiles(x86)%
+::IF DEFINED ProgramFiles SET PX86=%ProgramFiles%
+::IF DEFINED ProgramFiles(x86) SET PX86=%ProgramFiles(x86)%
 
 :: setup paths
-SET PATH=%WINDIR%\system32;%WINDIR%\system32\WindowsPowerShell\v1.0
-SET PATH=%PATH%;%PX86%\Windows Kits\10\bin\10.0.20348.0\x64
-SET PATH=%PATH%;%PX86%\Windows Kits\8.1\bin\x64
-SET PATH=%PATH%;%PX86%\WiX Toolset v3.11\bin
+::SET PATH=%WINDIR%\system32;%WINDIR%\system32\WindowsPowerShell\v1.0
+::SET PATH=%PATH%;%PX86%\Windows Kits\10\bin\10.0.20348.0\x64
+::SET PATH=%PATH%;%PX86%\Windows Kits\8.1\bin\x64
+::SET PATH=%PATH%;%PX86%\WiX Toolset v3.11\bin
 
 :: cleanup
 FOR %%X IN (Win32 x64 Debug Release Temp .vs) DO (
@@ -52,31 +52,31 @@ FOR %%X IN (Win32 x64 Debug Release Temp .vs) DO (
 FORFILES /S /P "%BINDIR%" /M "*.*" /C "CMD /C IF /I @ext NEQ """exe""" DEL /Q @file"
 
 :: sign the main executables
-signtool sign /sha1 %CERT% /as /fd sha256 /tr %TSAURL% /td sha256 /d %LIBNAME% /du %LIBURL% "%BINDIR%\x86\*.exe" "%BINDIR%\x64\*.exe" 
+::signtool sign /sha1 %CERT% /as /fd sha256 /tr %TSAURL% /td sha256 /d %LIBNAME%:: /du %LIBURL% "%BINDIR%\x86\*.exe" "%BINDIR%\x64\*.exe" 
 
 :: copy prereqs from build dir and 'real' installer
-MKDIR "%BASEDIR%\build"
-COPY /Y "%ProgramFiles(x86)%\PuTTY\*.url" "%BASEDIR%\build\"
-COPY /Y "%ProgramFiles%\PuTTY\*.url" "%BASEDIR%\build\"
-COPY /Y "%BASEDIR%\windows\*.ico" "%BASEDIR%\build\"
-COPY /Y "%BASEDIR%\windows\README-msi.txt" "%BASEDIR%\build\"
-COPY /Y "%INSTDIR%\*.bmp" "%BASEDIR%\build\"
+::MKDIR "%BASEDIR%\build"
+::COPY /Y "%ProgramFiles(x86)%\PuTTY\*.url" "%BASEDIR%\build\"
+::COPY /Y "%ProgramFiles%\PuTTY\*.url" "%BASEDIR%\build\"
+::COPY /Y "%BASEDIR%\windows\*.ico" "%BASEDIR%\build\"
+::COPY /Y "%BASEDIR%\windows\README-msi.txt" "%BASEDIR%\build\"
+::COPY /Y "%INSTDIR%\*.bmp" "%BASEDIR%\build\"
 
 :: do the build
-PUSHD "%BASEDIR%\build"
-candle -arch x86 -dWin64=no -dBuilddir="%BINDIR%\x86\\" -dDllOk=Yes -dRealPlatform=x86 -dWinver="%VERN%"  -dPUTTY_CAC=1 -dPuttytextver="PuTTY CAC %VERN%" "%BASEDIR%\windows\installer.wxs"
-light -ext WixUIExtension -ext WixUtilExtension -sval installer.wixobj -o "%BINDIR%\puttycac-%VER%-installer.msi"
-candle -arch x64 -dWin64=yes -dBuilddir="%BINDIR%\x64\\" -dDllOk=Yes -dRealPlatform=x64 -dWinver="%VERN%" -dPUTTY_CAC=1 -dPuttytextver="PuTTY CAC %VERN%" "%BASEDIR%\windows\installer.wxs"
-light -ext WixUIExtension -ext WixUtilExtension -sval installer.wixobj -o "%BINDIR%\puttycac-64bit-%VER%-installer.msi"
-POPD
+::PUSHD "%BASEDIR%\build"
+::candle -arch x86 -dWin64=no -dBuilddir="%BINDIR%\x86\\" -dDllOk=Yes -dRealPlatform=x86 -dWinver="%VERN%"  -dPUTTY_CAC=1 -dPuttytextver="PuTTY CAC %VERN%" "%BASEDIR%\windows\installer.wxs"
+::light -ext WixUIExtension -ext WixUtilExtension -sval installer.wixobj -o "%BINDIR%\puttycac-%VER%-installer.msi"
+::candle -arch x64 -dWin64=yes -dBuilddir="%BINDIR%\x64\\" -dDllOk=Yes -dRealPlatform=x64 -dWinver="%VERN%" -dPUTTY_CAC=1 -dPuttytextver="PuTTY CAC %VERN%" "%BASEDIR%\windows\installer.wxs"
+::light -ext WixUIExtension -ext WixUtilExtension -sval installer.wixobj -o "%BINDIR%\puttycac-64bit-%VER%-installer.msi"
+::POPD
 
 :: sign the msi files
-signtool sign /sha1 %CERT% /fd sha256 /tr %TSAURL% /td sha256 /d %LIBNAME% /du %LIBURL% "%BINDIR%\*.msi"
+::signtool sign /sha1 %CERT% /fd sha256 /tr %TSAURL% /td sha256 /d %LIBNAME% /du %LIBURL% "%BINDIR%\*.msi"
 
 :: cleanup
-RD /S /Q "%BASEDIR%\build"
-DEL /F /Q "%BASEDIR%\code\windows\putty.aps"
-DEL /F /Q "%BINDIR%\*.wixpdb"
+::RD /S /Q "%BASEDIR%\build"
+::DEL /F /Q "%BASEDIR%\code\windows\putty.aps"
+::DEL /F /Q "%BINDIR%\*.wixpdb"
 
 :: zip up executatables
 SET POWERSHELL=POWERSHELL.EXE -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Unrestricted
