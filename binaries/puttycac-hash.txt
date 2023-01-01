@@ -1,33 +1,33 @@
 
 Algorithm       Hash                                                                   Path
 ---------       ----                                                                   ----
-SHA256          46F773D2DB7022BC13CDD2ED288C23E321C0071F1B2FE3FCDC1639F29B8A8ED7       x64\pageant.exe
-SHA256          CC975625C2A8B6552C39E6D0E6B48BBC61ED0F32C804A5B3D3108CEE76B17127       x64\putty.exe
-SHA256          5140C6192027A677D579722D069AC2B9C30E9C61DC38B8F87E0289159A5580D6       x86\pageant.exe
-SHA256          8D501463C3916B0C3EA05E3F5CC3326544A32B67D30BF7AA18B5654770B935B8       x86\putty.exe
-SHA256          84998786C48B682153712EB91B7F16596F49EB1F3B71D97BB2086090025D743A       puttycac-0.78.zip
-SHA256          F7178D9EB85EFE956FB66F4C3CEF0129EEB133BB63E9D04CBF7FE5EBC89B70F3       puttycac-64bit-0.78.zip
+SHA256          D955BA7C18DEC7CE4822638CF4D42CF1DEC41D34B10F4AD2D657F8FC94CF0C2C       x64\pageant.exe
+SHA256          9EE59B325B6E66874AF981E79A46684B485B691F393044561C2ACB0213B73654       x64\putty.exe
+SHA256          579C09BC61AB6B90ECEACA5F145D02CE4F0710D54A2AC1D18DE77C353E7BC9EC       x86\pageant.exe
+SHA256          B3672BD2E94DC0193D5C97E26A6E6D035B0C869F96EC8532A714186CB57FD7A7       x86\putty.exe
+SHA256          B986D269B3EAC9D37B42B1E3AABA8E919472D3302722FF7BAF406353F71BEB43       puttycac-0.78.zip
+SHA256          FA27CAB199C19B27556322C028EC53F69A47343AEDCB5FC6F32EF53A78DF5C82       puttycac-64bit-0.78.zip
 
 
 
 Algorithm       Hash                                                                   Path
 ---------       ----                                                                   ----
-SHA1            B26DA0002AD731783BC657DF25658ECB8FAC704C                               x64\pageant.exe
-SHA1            AEC99BE5A9CB9B083F43A176574D2BAECCC8EB95                               x64\putty.exe
-SHA1            49F33378F62D3E57D7CAD25D4D60B311ED50341B                               x86\pageant.exe
-SHA1            D716A4A84AA9CC822100648D0CD4B06E1CD4CDDC                               x86\putty.exe
-SHA1            23AEDF8C1FAB4B6553D4B6225ECB62195E78D8AF                               puttycac-0.78.zip
-SHA1            5A1E00E2D7DE166AAB6DCC803B6B8972A6ABA01D                               puttycac-64bit-0.78.zip
+SHA1            EAE4D2158CBFFDD469D3DEEA04C2387E2794B8B6                               x64\pageant.exe
+SHA1            477BBD441C6F733C1DDDB907AC9E6807B05C42E0                               x64\putty.exe
+SHA1            BBAFA0F1E7080AFA3F713A23EF392EB3AEB9DAED                               x86\pageant.exe
+SHA1            A39FA3A017A4ED06A26ECAE069751DB1D037C07C                               x86\putty.exe
+SHA1            135546C0DC4B1E710072BCDBE37ED318E44A7368                               puttycac-0.78.zip
+SHA1            8D4759EEA990CF4909F90A773961ED2D5DE1E7AE                               puttycac-64bit-0.78.zip
 
 
 
 Algorithm       Hash                                                                   Path
 ---------       ----                                                                   ----
-MD5             27068E8D9A02D8F2586DFD323E5655DA                                       x64\pageant.exe
-MD5             154B5C21590378484D49633964222A12                                       x64\putty.exe
-MD5             65BA1C726253FEA511E9A2609E07C043                                       x86\pageant.exe
-MD5             30FD3F45466D29A8A08488B3675A5451                                       x86\putty.exe
-MD5             2ED778343CB53FD44159A3F26D0E5462                                       puttycac-0.78.zip
-MD5             157EBEA8672A98DD2C792E410FCDD04F                                       puttycac-64bit-0.78.zip
+MD5             4AB02C1926EDC2CF34F723B674491199                                       x64\pageant.exe
+MD5             A03ACB69E6351660D213B1609E8DF8CF                                       x64\putty.exe
+MD5             1745C2E0E70B3900333BDFE4C52EC807                                       x86\pageant.exe
+MD5             D4DA62C0E59EFC64F1E3A539FF418FFD                                       x86\putty.exe
+MD5             5E3FE80F822CA8002EC9632B444514B6                                       puttycac-0.78.zip
+MD5             C3A0423986E6476DCC3D0D4EBC6B4040                                       puttycac-64bit-0.78.zip
 
 

@@ -430,7 +430,7 @@ static void close_session(void *ignored_context)
     int i;
 
     session_closed = true;
-    newtitle = dupprintf("%s (inactive)", appname);
+    newtitle = dupprintf("%s (不活跃)", appname);
     win_set_icon_title(wintw, newtitle, DEFAULT_CODEPAGE);
     win_set_title(wintw, newtitle, DEFAULT_CODEPAGE);
     sfree(newtitle);
@@ -453,7 +453,7 @@ static void close_session(void *ignored_context)
     for (i = 0; i < lenof(popup_menus); i++) {
         DeleteMenu(popup_menus[i].menu, IDM_RESTART, MF_BYCOMMAND);
         InsertMenu(popup_menus[i].menu, IDM_DUPSESS, MF_BYCOMMAND | MF_ENABLED,
-                   IDM_RESTART, "&Restart Session");
+                   IDM_RESTART, "重启会话(&R)");
     }
 }
 
@@ -762,8 +762,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
         popup_menus[SYSMENU].menu = GetSystemMenu(wgs.term_hwnd, false);
         popup_menus[CTXMENU].menu = CreatePopupMenu();
-        AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_COPY, "&Copy");
-        AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "&Paste");
+        AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_COPY, "复制(&C)");
+        AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "粘贴(&P)");
 
         savedsess_menu = CreateMenu();
         get_sesslist(&sesslist, true);
@@ -773,25 +773,25 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
             m = popup_menus[j].menu;
 
             AppendMenu(m, MF_SEPARATOR, 0, 0);
-            AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "&Event Log");
+            AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "事件日志(&E)");
             AppendMenu(m, MF_SEPARATOR, 0, 0);
-            AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
-            AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "&Duplicate Session");
+            AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "新建会话(&W)...");
+            AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "重复会话(&D)");
             AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT_PTR) savedsess_menu,
-                       "Sa&ved Sessions");
-            AppendMenu(m, MF_ENABLED, IDM_RECONF, "Chan&ge Settings...");
+                       "保存会话(&V)");
+            AppendMenu(m, MF_ENABLED, IDM_RECONF, "修改设置(&G)...");
             AppendMenu(m, MF_SEPARATOR, 0, 0);
-            AppendMenu(m, MF_ENABLED, IDM_COPYALL, "C&opy All to Clipboard");
-            AppendMenu(m, MF_ENABLED, IDM_CLRSB, "C&lear Scrollback");
-            AppendMenu(m, MF_ENABLED, IDM_RESET, "Rese&t Terminal");
+            AppendMenu(m, MF_ENABLED, IDM_COPYALL, "复制所有内容到剪切板(&O)");
+            AppendMenu(m, MF_ENABLED, IDM_CLRSB, "清除回滚(&L)");
+            AppendMenu(m, MF_ENABLED, IDM_RESET, "重启终端(&T)");
             AppendMenu(m, MF_SEPARATOR, 0, 0);
             AppendMenu(m, (conf_get_int(conf, CONF_resize_action)
                            == RESIZE_DISABLED) ? MF_GRAYED : MF_ENABLED,
-                       IDM_FULLSCREEN, "&Full Screen");
+                       IDM_FULLSCREEN, "全屏显示(&F)");
             AppendMenu(m, MF_SEPARATOR, 0, 0);
             if (has_help())
-                AppendMenu(m, MF_ENABLED, IDM_HELP, "&Help");
-            str = dupprintf("&About %s", appname);
+                AppendMenu(m, MF_ENABLED, IDM_HELP, "帮助(&H)");
+            str = dupprintf("关于(&A)%s", appname);
             AppendMenu(m, MF_ENABLED, IDM_ABOUT, str);
             sfree(str);
         }
@@ -1043,7 +1043,7 @@ static void update_savedsess_menu(void)
                    IDM_SAVED_MIN + (i-1)*MENU_SAVED_STEP,
                    sesslist.sessions[i]);
     if (sesslist.nsessions <= 1)
-        AppendMenu(savedsess_menu, MF_GRAYED, IDM_SAVED_MIN, "(No sessions)");
+        AppendMenu(savedsess_menu, MF_GRAYED, IDM_SAVED_MIN, "(暂无会话)");
 }
 
 /*
@@ -1109,7 +1109,7 @@ static void win_seat_update_specials_menu(Seat *seat)
         if (new_menu) {
             InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
                        MF_BYCOMMAND | MF_POPUP | MF_ENABLED,
-                       (UINT_PTR) new_menu, "S&pecial Command");
+                       (UINT_PTR) new_menu, "特殊命令(&P)");
             InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
                        MF_BYCOMMAND | MF_SEPARATOR, IDM_SPECIALSEP, 0);
         }
