@@ -3452,7 +3452,8 @@ void setup_config_box(struct controlbox *b, bool midsession,
                          FILTER_KEY_FILES, false, "选择私钥文件",
                          HELPCTX(ssh_auth_privkey),
                          conf_filesel_handler, I(CONF_keyfile));
-            ctrl_filesel(s, "要与私钥一起使用的证书", 'e',
+            ctrl_filesel(s, "要与私钥一起使用的证书"
+                         "(自选)", 'e',
                          NULL, false, "选择证书文件",
                          HELPCTX(ssh_auth_cert),
                          conf_filesel_handler, I(CONF_detached_cert));
@@ -3708,6 +3709,10 @@ void setup_config_box(struct controlbox *b, bool midsession,
 
             s = ctrl_getset(b, "连接/SSH/更多纠错", "main",
                             "检测SSH服务已知的错误：");
+            ctrl_droplist(s, "旧的RSA/SHA2证书算法命名", 'l', 20,
+                          HELPCTX(ssh_bugs_rsa_sha2_cert_userauth),
+                          sshbug_handler,
+                          I(CONF_sshbug_rsa_sha2_cert_userauth));
             ctrl_droplist(s, "需要对SSH-2 RSA签名进行填充", 'p', 20,
                           HELPCTX(ssh_bugs_rsapad2),
                           sshbug_handler, I(CONF_sshbug_rsapad2));
