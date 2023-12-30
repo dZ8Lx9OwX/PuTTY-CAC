@@ -2,8 +2,8 @@
 
 $packageName= $env:ChocolateyPackageName
 $toolsDir   = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url        = 'https://github.com/NoMoreFood/putty-cac/raw/0.79/binaries/puttycac-0.79-installer.msi'
-$url64      = 'https://github.com/NoMoreFood/putty-cac/raw/0.79/binaries/puttycac-64bit-0.79-installer.msi'
+$url        = 'https://github.com/NoMoreFood/putty-cac/raw/0.79u1/binaries/puttycac-0.79u1-installer.msi'
+$url64      = 'https://github.com/NoMoreFood/putty-cac/raw/0.79u1/binaries/puttycac-64bit-0.79u1-installer.msi'
 
 $packageArgs = @{
   packageName   = $packageName
@@ -14,9 +14,9 @@ $packageArgs = @{
 
   softwareName  = 'PuTTY CAC*'
 
-  checksum      = '6A11D19193EB8E5D017C493247FE1CB324492255E8A0480BFC4558886C18AC57'
+  checksum      = '48A955AC22E765D23B5C931A20C4B0A26DE427B0DBC9D594D572F21C7353D35C'
   checksumType  = 'sha256'
-  checksum64    = '874C2383DB0A0B3E4B26B99148D9AD0110BBB77111645E3D9AA787BA52BE6590'
+  checksum64    = 'A667E6C6A1D73AD1435B00D539AFBE4E9939470F970955455D2EDEF4079D7E8E'
   checksumType64= 'sha256'
 
   silentArgs    = "/qn /norestart /l*v `"$($env:TEMP)\$($packageName).$($env:chocolateyPackageVersion).MsiInstall.log`""
