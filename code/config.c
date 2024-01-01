@@ -867,11 +867,12 @@ void cert_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 
 struct fido_data {
 	dlgcontrol* fido_create_key_button, * fido_delete_key_button, * fido_import_key_button, * fido_import_ssh_button,
-        * fido_clear_key_button, * fido_algo_combobox, * fido_app_text, * fido_verification_radio, * fido_resident_radio;
+        * fido_clear_key_button, * fido_algo_combobox, * fido_display_text, * fido_app_text, * fido_verification_radio, * fido_resident_radio;
 };
 
 void fido_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 {
+
 	Conf* conf = (Conf*)data;
 	struct fido_data* fidod = (struct fido_data*)ctrl->context.p;
 	static const char* szAlgTable[] = {
@@ -929,13 +930,24 @@ void fido_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 				L"在创建过程中看到重复的、无法解析的PIN提示。您是否还要继续？？",
 				L"FIDO密钥类型警告", MB_SYSTEMMODAL | MB_ICONQUESTION | MB_YESNO) != IDYES) return;
 
+		// display name
+		char* szDisplayName = dlg_editbox_get(fidod->fido_display_text, dlg);
+		if (szDisplayName == NULL || strlen(szDisplayName) == 0) {
+			MessageBoxW(NULL, L"The value provided for display name is not valid. " \
+				L"This value cannot be blank. " \
+				L"Please check this value and try again.",
+				L"FIDO Key Creation Parameters Invalid", MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
+			return;
+		}
+
 		// sanity check on parameters
 		char* szAppId = dlg_editbox_get(fidod->fido_app_text, dlg);
-		if (strstr(szAppId, "ssh:") != szAppId)
+		if (szAppId == NULL || strstr(szAppId, "ssh:") != szAppId)
 		{
-			MessageBoxW(NULL, L"为应用程序名称提供" \
-				L"的值无效。请检查这些值，然后重试。",
-				L"FIDO密钥创建失败", MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
+			MessageBoxW(NULL, L"为应用程序名称提供的值无效。" \
+				L"出于兼容性原因，此值必须以'ssh:'开头。" \
+				L"请检查此值，然后重试。",
+				L"FIDO 密钥创建参数无效", MB_SYSTEMMODAL | MB_ICONERROR | MB_OK);
 			return;
 		}
 
@@ -959,7 +971,7 @@ void fido_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 		int bVerificationRequired = (dlg_radiobutton_get(fidod->fido_verification_radio, dlg) == 1);
 
 		// attempt to create key
-		if (fido_create_key(szAlgId, szAppId, bResidentKey, bVerificationRequired))
+		if (fido_create_key(szAlgId, szDisplayName, szAppId, bResidentKey, bVerificationRequired))
 		{
 			// alert user of success and ask about assignment
 			if (MessageBoxW(NULL, L"FIDO密钥创建成功，并且已添加到FIDO缓存中。" \
@@ -1001,6 +1013,12 @@ void fido_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 			dlg_listbox_add(ctrl, dlg, szAlgTable[iIndex]);
 		dlg_listbox_select(ctrl, dlg, 0);
 		dlg_update_done(ctrl, dlg);
+	}
+
+	// default text for display name
+	if (ctrl == fidod->fido_display_text && event == EVENT_REFRESH)
+	{
+		dlg_editbox_set(ctrl, dlg, "SSH FIDO Key");
 	}
 
 	// default text for application name
@@ -3281,7 +3299,7 @@ void setup_config_box(struct controlbox *b, bool midsession,
 			 */
 			ctrl_settitle(b, "连接/SSH/证书/FIDO工具",
 				"FIDO令牌密钥管理向导");
-			struct fido_data* fidod = (struct fido_data*)ctrl_alloc(b, sizeof(struct cert_data));
+			struct fido_data* fidod = (struct fido_data*)ctrl_alloc(b, sizeof(struct fido_data));
 
 			// section for fido creation
 			s = ctrl_getset(b, "连接/SSH/证书/FIDO工具", "params", "创建参数：");
@@ -3290,11 +3308,11 @@ void setup_config_box(struct controlbox *b, bool midsession,
 			fidod->fido_algo_combobox = ctrl_droplist(s, "密钥算法：", 't',
 				65, HELPCTX(no_help), fido_event_handler, P(fidod));
 
-			fidod->fido_app_text = ctrl_editbox(s, "应用程序名称：", NO_SHORTCUT, 64,
+            fidod->fido_app_text = ctrl_editbox(s, "应用程序名称：", NO_SHORTCUT, 64,
+                HELPCTX(no_help), fido_event_handler, P(fidod), I(0));
+
+			fidod->fido_display_text = ctrl_editbox(s, "显示名称：", NO_SHORTCUT, 64,
 				HELPCTX(no_help), fido_event_handler, P(fidod), I(0));
-			ctrl_text(s, "应用程序名称用于标识此特定密钥," \
-				"它必须以'ssh:'开头,以确保兼容性;如果你有" \
-				"多个令牌,您可能还希望包含其它文本来区分令牌", HELPCTX(no_help));
 
 			fidod->fido_resident_radio = ctrl_radiobuttons(s,
 				"密钥类型：", 'r', 1, HELPCTX(no_help), fido_event_handler,
@@ -3313,8 +3331,6 @@ void setup_config_box(struct controlbox *b, bool midsession,
 
 			// section for fido imports
 			s = ctrl_getset(b, "连接/SSH/证书/FIDO工具", "import_params", "密钥管理：");
-			ctrl_text(s, "使用此选项可以向FIDO令牌导入驻留密钥,但您必须" \
-				"拥有本地管理员权限才能进行相关操作", HELPCTX(no_help));
 
 			// adjust so we have two columns with a small separation in the middle
 			ctrl_columns(s, 3, 45, 10, 45);
@@ -3334,6 +3350,8 @@ void setup_config_box(struct controlbox *b, bool midsession,
 			fidod->fido_delete_key_button = ctrl_pushbutton(s, "删除密钥...",
 				NO_SHORTCUT, HELPCTX(no_help), fido_event_handler, P(fidod));
 			fidod->fido_delete_key_button->column = 0;
+
+            ctrl_text(s, "注意：“导入密钥”功能需要提升的本地权限才能成功。", HELPCTX(no_help));
 
 			/*
 			 * The Connection/SSH/CAPI Tools panel.

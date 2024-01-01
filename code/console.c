@@ -9,27 +9,17 @@
 #include "misc.h"
 #include "console.h"
 
-const char weakcrypto_msg_common_fmt[] =
-    "The first %s supported by the server is\n"
-    "%s, which is below the configured warning threshold.\n";
-
-const char weakhk_msg_common_fmt[] =
-    "The first host key type we have stored for this server\n"
-    "is %s, which is below the configured warning threshold.\n"
-    "The server also provides the following types of host key\n"
-    "above the threshold, which we do not have stored:\n"
-    "%s\n";
-
-const char console_continue_prompt[] = "Continue with connection? (y/n) ";
 const char console_abandoned_msg[] = "Connection abandoned.\n";
 
 const SeatDialogPromptDescriptions *console_prompt_descriptions(Seat *seat)
 {
     static const SeatDialogPromptDescriptions descs = {
-        .hk_accept_action = "enter \"y\"",
-        .hk_connect_once_action = "enter \"n\"",
-        .hk_cancel_action = "press Return",
-        .hk_cancel_action_Participle = "Pressing Return",
+        .hk_accept_action = "输入 \"y\" 并回车",
+        .hk_connect_once_action = "输入 \"n\"并回车",
+        .hk_cancel_action = "确认回车",
+        .hk_cancel_action_Participle = "确认回车",
+        .weak_accept_action = "输入 \"y\"",
+        .weak_cancel_action = "输入 \"n\"",
     };
     return &descs;
 }
@@ -60,7 +50,7 @@ void modalfatalbox(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    console_print_error_msg_fmt_v("FATAL ERROR", fmt, ap);
+    console_print_error_msg_fmt_v("致命错误", fmt, ap);
     va_end(ap);
     cleanup_exit(1);
 }
@@ -69,13 +59,13 @@ void nonfatal(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    console_print_error_msg_fmt_v("ERROR", fmt, ap);
+    console_print_error_msg_fmt_v("错误", fmt, ap);
     va_end(ap);
 }
 
 void console_connection_fatal(Seat *seat, const char *msg)
 {
-    console_print_error_msg("FATAL ERROR", msg);
+    console_print_error_msg("致命错误", msg);
     cleanup_exit(1);
 }
 

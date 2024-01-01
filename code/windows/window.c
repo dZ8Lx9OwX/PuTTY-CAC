@@ -2213,11 +2213,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_CLOSE: {
         char *title, *msg, *additional = NULL;
         show_mouseptr(true);
-        title = dupprintf("%s Exit Confirmation", appname);
+        title = dupprintf("%s 退出确认！", appname);
         if (backend && backend->vt->close_warn_text) {
             additional = backend->vt->close_warn_text(backend);
         }
-        msg = dupprintf("Are you sure you want to close this session?%s%s",
+        msg = dupprintf("您确定要关闭此会话吗？%s%s",
                         additional ? "\n" : "",
                         additional ? additional : "");
         if (session_closed || !conf_get_bool(conf, CONF_warn_on_close) ||

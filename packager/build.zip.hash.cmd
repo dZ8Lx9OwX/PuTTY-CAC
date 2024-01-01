@@ -2,8 +2,8 @@
 TITLE Building PuTTY-CAC
 
 :: version information
-SET VER=0.79
-SET VERN=0.79.0.0
+SET VER=0.80
+SET VERN=0.80.0.0
 
 :: setup environment variables based on location of this script
 SET INSTDIR=%~dp0
@@ -13,7 +13,7 @@ SET BINDIR=%INSTDIR%\..\binaries
 SET BLDDIR=%INSTDIR%\..\build
 
 :: cert info to use for signing
-::SET CERT=055E5F445405B24790B32F75FE9049884F2F3788
+::SET CERT=04F071366E2A3C75B7CABF091B9CF340ABEA22A7
 ::set TSAURL=http://time.certum.pl/
 ::set LIBNAME=PuTTY-CAC
 ::set LIBURL=https://github.com/NoMoreFood/putty-cac
@@ -27,11 +27,11 @@ SET BLDDIR=%INSTDIR%\..\build
 :: RD /S /Q "%BLDDIR%"
 :: RD /S /Q "%BINDIR%"
 :: CMAKE -S ..\code -A x64 -B %BLDDIR%\x64 -D PUTTY_CAC=1 -D PUTTY_EMBEDDED_CHM_FILE=%BASEDIR%\doc\putty.chm
-:: CMAKE --build %BLDDIR%\x64 --parallel --config Release --target pageant putty
+:: CMAKE --build %BLDDIR%\x64 --parallel --config Release --target pageant putty puttyimp
 MKDIR "%BINDIR%\x64"
 COPY /Y %BLDDIR%\x64\Release\*.exe "%BINDIR%\x64"
 :: CMAKE -S ..\code -A Win32 -B %BLDDIR%\x86 -D PUTTY_CAC=1 -D PUTTY_EMBEDDED_CHM_FILE=%BASEDIR%\doc\putty.chm
-:: CMAKE --build %BLDDIR%\x86 --parallel --config Release --target pageant putty 
+:: CMAKE --build %BLDDIR%\x86 --parallel --config Release --target pageant putty puttyimp 
 MKDIR "%BINDIR%\x86"
 COPY /Y %BLDDIR%\x86\Release\*.exe "%BINDIR%\x86"
 
@@ -41,7 +41,7 @@ COPY /Y %BLDDIR%\x86\Release\*.exe "%BINDIR%\x86"
 
 :: setup paths
 ::SET PATH=%WINDIR%\system32;%WINDIR%\system32\WindowsPowerShell\v1.0
-::SET PATH=%PATH%;%PX86%\Windows Kits\10\bin\10.0.20348.0\x64
+::FOR /F "DELIMS=" %%X IN ('DIR "%PX86%\Windows Kits\10\bin\signtool.exe" /B /S /A ^| FINDSTR "\\x64\\"') DO SET PATH=%PATH%;%%~dpX
 ::SET PATH=%PATH%;%PX86%\Windows Kits\8.1\bin\x64
 ::SET PATH=%PATH%;%PX86%\WiX Toolset v3.11\bin
 
@@ -56,8 +56,7 @@ COPY /Y %BLDDIR%\x86\Release\*.exe "%BINDIR%\x86"
 
 :: copy prereqs from build dir and 'real' installer
 ::MKDIR "%BASEDIR%\build"
-::COPY /Y "%ProgramFiles(x86)%\PuTTY\*.url" "%BASEDIR%\build\"
-::COPY /Y "%ProgramFiles%\PuTTY\*.url" "%BASEDIR%\build\"
+::COPY /Y "%BASEDIR%\windows\*.url" "%BASEDIR%\build\"
 ::COPY /Y "%BASEDIR%\windows\*.ico" "%BASEDIR%\build\"
 ::COPY /Y "%BASEDIR%\windows\README-msi.txt" "%BASEDIR%\build\"
 ::COPY /Y "%INSTDIR%\*.bmp" "%BASEDIR%\build\"
@@ -81,10 +80,10 @@ COPY /Y %BLDDIR%\x86\Release\*.exe "%BINDIR%\x86"
 :: zip up executatables
 SET POWERSHELL=POWERSHELL.EXE -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Unrestricted
 PUSHD "%BINDIR%\x86%"
-%POWERSHELL% -Command "Compress-Archive '*.exe' -Force -DestinationPath '%BINDIR%\puttycac-%VER%.zip'"
+%POWERSHELL% -Command "Compress-Archive '*.exe' -DestinationPath '%BINDIR%\puttycac-%VER%.zip'"
 POPD
 PUSHD "%BINDIR%\x64%"
-%POWERSHELL% -Command "Compress-Archive '*.exe' -Force -DestinationPath '%BINDIR%\puttycac-64bit-%VER%.zip'"
+%POWERSHELL% -Command "Compress-Archive '*.exe' -DestinationPath '%BINDIR%\puttycac-64bit-%VER%.zip'"
 POPD
 
 :: output hash information

@@ -963,6 +963,39 @@ static INT_PTR HostKeyMoreInfoProc(HWND hwnd, UINT msg, WPARAM wParam,
     return 0;
 }
 
+static const char *process_seatdialogtext(
+    strbuf *dlg_text, const char **scary_heading, SeatDialogText *text)
+{
+    const char *dlg_title = "";
+
+    for (SeatDialogTextItem *item = text->items,
+             *end = item + text->nitems; item < end; item++) {
+        switch (item->type) {
+          case SDT_PARA:
+            put_fmt(dlg_text, "%s\r\n\r\n", item->text);
+            break;
+          case SDT_DISPLAY:
+            put_fmt(dlg_text, "%s\r\n\r\n", item->text);
+            break;
+          case SDT_SCARY_HEADING:
+            assert(scary_heading != NULL && "only expect a scary heading if "
+                   "the dialog has somewhere to put it");
+            *scary_heading = item->text;
+            break;
+          case SDT_TITLE:
+            dlg_title = item->text;
+            break;
+          default:
+            break;
+        }
+    }
+
+    /* Trim any trailing newlines */
+    while (strbuf_chomp(dlg_text, '\r') || strbuf_chomp(dlg_text, '\n'));
+
+    return dlg_title;
+}
+
 static INT_PTR HostKeyDialogProc(HWND hwnd, UINT msg,
                                  WPARAM wParam, LPARAM lParam, void *vctx)
 {
@@ -971,32 +1004,15 @@ static INT_PTR HostKeyDialogProc(HWND hwnd, UINT msg,
     switch (msg) {
       case WM_INITDIALOG: {
         strbuf *dlg_text = strbuf_new();
-        const char *dlg_title = "";
-        ctx->has_title = false;
-        LPCTSTR iconid = IDI_QUESTION;
+        const char *scary_heading = NULL;
+        const char *dlg_title = process_seatdialogtext(
+            dlg_text, &scary_heading, ctx->text);
 
-        for (SeatDialogTextItem *item = ctx->text->items,
-                 *end = item + ctx->text->nitems; item < end; item++) {
-            switch (item->type) {
-              case SDT_PARA:
-                put_fmt(dlg_text, "%s\r\n\r\n", item->text);
-                break;
-              case SDT_DISPLAY:
-                put_fmt(dlg_text, "%s\r\n\r\n", item->text);
-                break;
-              case SDT_SCARY_HEADING:
-                SetDlgItemText(hwnd, IDC_HK_TITLE, item->text);
-                iconid = IDI_WARNING;
-                ctx->has_title = true;
-                break;
-              case SDT_TITLE:
-                dlg_title = item->text;
-                break;
-              default:
-                break;
-            }
+        LPCTSTR iconid = IDI_QUESTION;
+        if (scary_heading) {
+            SetDlgItemText(hwnd, IDC_HK_TITLE, scary_heading);
+            iconid = IDI_WARNING;
         }
-        while (strbuf_chomp(dlg_text, '\r') || strbuf_chomp(dlg_text, '\n'));
 
         SetDlgItemText(hwnd, IDC_HK_TEXT, dlg_text->s);
         MakeDlgItemBorderless(hwnd, IDC_HK_TEXT);
@@ -1135,6 +1151,8 @@ const SeatDialogPromptDescriptions *win_seat_prompt_descriptions(Seat *seat)
         .hk_connect_once_action = "选择 \"连接一次\"",
         .hk_cancel_action = "选择 \"取消\"",
         .hk_cancel_action_Participle = "选择 \"取消\"",
+        .weak_accept_action = "选择 \"是(Y)\"",
+        .weak_cancel_action = "选择 \"否(N)\"",
     };
     return &descs;
 }
@@ -1169,24 +1187,17 @@ SeatPromptResult win_seat_confirm_ssh_host_key(
  * below the configured 'warn' threshold).
  */
 SeatPromptResult win_seat_confirm_weak_crypto_primitive(
-    Seat *seat, const char *algtype, const char *algname,
+    Seat *seat, SeatDialogText *text,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
-    static const char mbtitle[] = "%s 安全警报";
-    static const char msg[] =
-        "当前服务器支持的%s\n"
-        "为 %s，低于配置的警告阀值。\n"
-        "您想继续这个连接吗？？？\n";
-    char *message, *title;
-    int mbret;
+    strbuf *dlg_text = strbuf_new();
+    const char *dlg_title = process_seatdialogtext(dlg_text, NULL, text);
 
-    message = dupprintf(msg, algtype, algname);
-    title = dupprintf(mbtitle, appname);
-    mbret = MessageBox(NULL, message, title,
-                       MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
+    int mbret = MessageBox(NULL, dlg_text->s, dlg_title,
+                           MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
     socket_reselect_all();
-    sfree(message);
-    sfree(title);
+    strbuf_free(dlg_text);
+
     if (mbret == IDYES)
         return SPR_OK;
     else
@@ -1194,27 +1205,17 @@ SeatPromptResult win_seat_confirm_weak_crypto_primitive(
 }
 
 SeatPromptResult win_seat_confirm_weak_cached_hostkey(
-    Seat *seat, const char *algname, const char *betteralgs,
+    Seat *seat, SeatDialogText *text,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx)
 {
-    static const char mbtitle[] = "%s 安全警报";
-    static const char msg[] =
-        "我们为此服务器存储的第一个主机密钥类型\n"
-        "是%s，低于配置的警告阀值。\n"
-        "服务器还提供一下类型的主机密钥\n"
-        "超过阀值，我们没有存储：\n"
-        "%s\n"
-        "您想继续这个连接吗？？？\n";
-    char *message, *title;
-    int mbret;
+    strbuf *dlg_text = strbuf_new();
+    const char *dlg_title = process_seatdialogtext(dlg_text, NULL, text);
 
-    message = dupprintf(msg, algname, betteralgs);
-    title = dupprintf(mbtitle, appname);
-    mbret = MessageBox(NULL, message, title,
-                       MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
+    int mbret = MessageBox(NULL, dlg_text->s, dlg_title,
+                           MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2);
     socket_reselect_all();
-    sfree(message);
-    sfree(title);
+    strbuf_free(dlg_text);
+
     if (mbret == IDYES)
         return SPR_OK;
     else
