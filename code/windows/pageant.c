@@ -496,7 +496,7 @@ void keylist_update(void)
     }
 
 #ifdef PUTTY_CAC
-    if (cert_save_cert_list_enabled(-1))
+    if (cert_save_cert_list_enabled(CERT_QUERY))
     {
         /* initialize a double-null terminated string */
         char* slist = snewn(2, char);
@@ -1573,7 +1573,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
 		  DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
 		  CheckMenuItem(systray_menu, IDM_SAVELIST, iNewState);
 		  DWORD SaveCertListEnabled = (iNewState == MF_CHECKED);
-		  cert_save_cert_list_enabled(SaveCertListEnabled);
+		  cert_save_cert_list_enabled(SaveCertListEnabled ? CERT_SET : CERT_UNSET);
 		  RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "SaveCertListEnabled", REG_DWORD, &SaveCertListEnabled, sizeof(DWORD));
 	  } break;
 	  case IDM_PINCACHE: {
@@ -1581,7 +1581,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
 		  DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
 		  CheckMenuItem(systray_menu, IDM_PINCACHE, iNewState);
 		  DWORD ForcePinCaching = (iNewState == MF_CHECKED);
-		  cert_cache_enabled(ForcePinCaching);
+		  cert_cache_enabled(ForcePinCaching ? CERT_SET : CERT_UNSET);
 		  RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "ForcePinCaching", REG_DWORD, &ForcePinCaching, sizeof(DWORD));
 	  } break;
 	  case IDM_CERTAUTH: {
@@ -1589,7 +1589,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
 		  DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
 		  CheckMenuItem(systray_menu, IDM_CERTAUTH, iNewState);
 		  DWORD CertAuthPrompting = (iNewState == MF_CHECKED);
-		  cert_auth_prompting(CertAuthPrompting);
+		  cert_auth_prompting(CertAuthPrompting ? CERT_SET : CERT_UNSET);
 		  RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "CertAuthPrompting", REG_DWORD, &CertAuthPrompting, sizeof(DWORD));
 	  } break;
 	  case IDM_SCONLY: {
@@ -1597,7 +1597,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
 		  DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
 		  CheckMenuItem(systray_menu, IDM_SCONLY, iNewState);
 		  DWORD SmartCardLogonCertsOnly = (iNewState == MF_CHECKED);
-		  cert_smartcard_certs_only(SmartCardLogonCertsOnly);
+		  cert_smartcard_certs_only(SmartCardLogonCertsOnly ? CERT_SET : CERT_UNSET);
 		  RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "SmartCardLogonCertsOnly", REG_DWORD, &SmartCardLogonCertsOnly, sizeof(DWORD));
 	  } break;
       case IDM_TRUSTED: {
@@ -1605,7 +1605,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
           DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
           CheckMenuItem(systray_menu, IDM_TRUSTED, iNewState);
           DWORD TrustedCertsOnly = (iNewState == MF_CHECKED);
-          cert_trusted_certs_only(TrustedCertsOnly);
+          cert_trusted_certs_only(TrustedCertsOnly ? CERT_SET : CERT_UNSET);
           RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "TrustedCertsOnly", REG_DWORD, &TrustedCertsOnly, sizeof(DWORD));
       } break;
 	  case IDM_NOEXPR: {
@@ -1613,7 +1613,7 @@ static LRESULT CALLBACK TrayWndProc(HWND hwnd, UINT message,
 		  DWORD iNewState = (iItem == MF_CHECKED) ? MF_UNCHECKED : MF_CHECKED;
 		  CheckMenuItem(systray_menu, IDM_NOEXPR, iNewState);
 		  DWORD IgnoreExpiredCerts = (iNewState == MF_CHECKED);
-		  cert_ignore_expired_certs(IgnoreExpiredCerts);
+		  cert_ignore_expired_certs(IgnoreExpiredCerts ? CERT_SET : CERT_UNSET);
 		  RegSetKeyValue(HKEY_CURRENT_USER, PUTTY_REG_POS, "IgnoreExpiredCerts", REG_DWORD, &IgnoreExpiredCerts, sizeof(DWORD));
 	  } break;
 #endif // PUTTY_CAC
@@ -2157,7 +2157,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     }
 #ifdef PUTTY_CAC
 
-    if (cert_auto_load_certs(-1))
+    if (cert_auto_load_certs(CERT_QUERY))
     {
         LPSTR* pszCert = NULL;
         int iNumCert = cert_all_certs(&pszCert);
@@ -2172,7 +2172,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
         sfree(pszCert);
     }
 
-    if (cert_save_cert_list_enabled(-1))
+    if (cert_save_cert_list_enabled(CERT_QUERY))
     {
         DWORD iKeySize = 0;
         char* szKey = NULL;
@@ -2199,22 +2199,15 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	AppendMenu(systray_menu, MF_ENABLED, IDM_ADDCAPI, "添加CAPI证书");
 	AppendMenu(systray_menu, MF_ENABLED, IDM_ADDPKCS, "添加PKCS证书");
     AppendMenu(systray_menu, MF_ENABLED, IDM_ADDFIDO, "添加FIDO密钥");
-	AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_auto_load_certs(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_AUTOCERT, "自动加载密钥/证书");
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_save_cert_list_enabled(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_SAVELIST, "记录密钥/证书");
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_cache_enabled(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_PINCACHE, "强制PIN缓存");
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_auth_prompting(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_CERTAUTH, "密钥/证书身份验证提示");
-	AppendMenu(systray_menu, MF_SEPARATOR, 0, 0);
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_smartcard_certs_only(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_SCONLY, "筛选:智能卡登录证书");
-    AppendMenu(systray_menu, MF_ENABLED | ((cert_trusted_certs_only(-1))
-        ? MF_CHECKED : MF_UNCHECKED), IDM_TRUSTED, "筛选:受信任的证书");
-	AppendMenu(systray_menu, MF_ENABLED | ((cert_ignore_expired_certs(-1))
-		? MF_CHECKED : MF_UNCHECKED), IDM_NOEXPR, "筛选:没有过期证书");
+	AppendMenu(systray_menu, MF_SEPARATOR, 0, NULL);
+	AppendMenu(systray_menu, cert_menu_flags(cert_auto_load_certs), IDM_AUTOCERT, "自动加载密钥/证书");
+	AppendMenu(systray_menu, cert_menu_flags(cert_save_cert_list_enabled), IDM_SAVELIST, "记录密钥/证书");
+	AppendMenu(systray_menu, cert_menu_flags(cert_cache_enabled), IDM_PINCACHE, "强制PIN缓存");
+	AppendMenu(systray_menu, cert_menu_flags(cert_auth_prompting), IDM_CERTAUTH, "密钥/证书身份验证提示");
+	AppendMenu(systray_menu, MF_SEPARATOR, 0, NULL);
+	AppendMenu(systray_menu, cert_menu_flags(cert_smartcard_certs_only), IDM_SCONLY, "筛选:智能卡登录证书");
+    AppendMenu(systray_menu, cert_menu_flags(cert_trusted_certs_only), IDM_TRUSTED, "筛选:受信任的证书");
+	AppendMenu(systray_menu, cert_menu_flags(cert_ignore_expired_certs), IDM_NOEXPR, "筛选:未过期证书");
 #else 
     AppendMenu(systray_menu, MF_ENABLED, IDM_VIEWKEYS,
                "查看密钥");

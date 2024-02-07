@@ -1058,19 +1058,19 @@ void capi_event_handler(dlgcontrol* ctrl, dlgparam* dlg, void* data, int event)
 
 	// handle certificate filter - ignore expired
 	if (ctrl == capid->capi_no_expired_checkbox && event == EVENT_REFRESH)
-		dlg_checkbox_set(ctrl, dlg, cert_ignore_expired_certs(-1));
+		dlg_checkbox_set(ctrl, dlg, cert_ignore_expired_certs(CERT_QUERY));
 	if (ctrl == capid->capi_no_expired_checkbox && event == EVENT_VALCHANGE)
 		cert_ignore_expired_certs(dlg_checkbox_get(ctrl, dlg));
 
 	// handle certificate filter - smartcard only expired
 	if (ctrl == capid->capi_smartcard_only_checkbox && event == EVENT_REFRESH)
-		dlg_checkbox_set(ctrl, dlg, cert_smartcard_certs_only(-1));
+		dlg_checkbox_set(ctrl, dlg, cert_smartcard_certs_only(CERT_QUERY));
 	if (ctrl == capid->capi_smartcard_only_checkbox && event == EVENT_VALCHANGE)
 		cert_smartcard_certs_only(dlg_checkbox_get(ctrl, dlg));
 
 	// handle certificate filter - trusted only
 	if (ctrl == capid->capi_trusted_certs_checkbox && event == EVENT_REFRESH)
-		dlg_checkbox_set(ctrl, dlg, cert_trusted_certs_only(-1));
+		dlg_checkbox_set(ctrl, dlg, cert_trusted_certs_only(CERT_QUERY));
 	if (ctrl == capid->capi_trusted_certs_checkbox && event == EVENT_VALCHANGE)
 		cert_trusted_certs_only(dlg_checkbox_get(ctrl, dlg));
 
@@ -3392,17 +3392,26 @@ void setup_config_box(struct controlbox *b, bool midsession,
 			ctrl_text(s, "使用选项用来筛选PuTTY和Pageant证书" \
 				"选择对话框中显示的证书", HELPCTX(no_help));
 
-			capid->capi_trusted_certs_checkbox = ctrl_checkbox(s, "仅受信任的",
-				NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
-			capid->capi_trusted_certs_checkbox->column = 0;
+            if (!cert_trusted_certs_only(CERT_ENFORCED))
+            {
+                capid->capi_trusted_certs_checkbox = ctrl_checkbox(s, "仅受信任的",
+                    NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
+                capid->capi_trusted_certs_checkbox->column = 0;
+            }
 
-			capid->capi_smartcard_only_checkbox = ctrl_checkbox(s, "仅智能卡",
-				NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
-			capid->capi_smartcard_only_checkbox->column = 0;
+            if (!cert_smartcard_certs_only(CERT_ENFORCED))
+            {
+                capid->capi_smartcard_only_checkbox = ctrl_checkbox(s, "仅智能卡",
+                    NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
+                capid->capi_smartcard_only_checkbox->column = 0;
+            }
 
-			capid->capi_no_expired_checkbox = ctrl_checkbox(s, "未过期的",
-				NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
-			capid->capi_no_expired_checkbox->column = 2;
+            if (!cert_ignore_expired_certs(CERT_ENFORCED))
+            {
+                capid->capi_no_expired_checkbox = ctrl_checkbox(s, "未过期的",
+                    NO_SHORTCUT, HELPCTX(no_help), capi_event_handler, P(capid));
+                capid->capi_no_expired_checkbox->column = 2;
+            }
 
 			// selection for other options filter
 			s = ctrl_getset(b, "连接/SSH/证书/CAPI工具", "other_params", "其它选项：");
