@@ -912,6 +912,7 @@ PVOID cert_pin(LPSTR szCert, BOOL bWide, LPVOID szPin)
 	tCredInfo.cbSize = sizeof(tCredInfo);
 	tCredInfo.pszCaptionText = L"PuTTY身份验证";
 	tCredInfo.pszMessageText = L"请输入智能卡凭证";
+	tCredInfo.hwndParent = GetDesktopWindow();
 	WCHAR szUserName[CREDUI_MAX_USERNAME_LENGTH + 1] = L"<使用智能卡>";
 	WCHAR szPassword[CREDUI_MAX_PASSWORD_LENGTH + 1] = L"";
 	if (CredUIPromptForCredentialsW(&tCredInfo, L"智能卡", NULL, 0, szUserName,
