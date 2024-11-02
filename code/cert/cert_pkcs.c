@@ -121,136 +121,164 @@ BYTE * cert_pkcs_sign(struct ssh2_userkey * userkey, LPCBYTE pDataToSign, int iD
 		}
 	}
 
-	// setup the find structure to identify the public key on the token
-	CK_OBJECT_CLASS iPublicType = CKO_PUBLIC_KEY;
-	CK_ATTRIBUTE aFindPubCriteria[] = {
-		{ CKA_CLASS,     &iPublicType,  sizeof(CK_OBJECT_CLASS) },
-		{ oAttribute,    pLookupValue,  iLookupSize },
-		{ CKA_KEY_TYPE,  &oType,        sizeof(CK_KEY_TYPE) }
-	};
-
-	// get a handle to the session of the token and the public key object
+	CK_OBJECT_HANDLE hPrivateKey;
 	CK_SESSION_HANDLE hSession = 0;
-	CK_OBJECT_HANDLE hPublicKey = 0;
-	pkcs_lookup_token_cert(userkey->comment, &hSession,
-		&hPublicKey, aFindPubCriteria, _countof(aFindPubCriteria), TRUE);
-
-	// cleanup the modulus since we no longer need it
-	free(pLookupValue);
-
-	// check for error
-	if (hSession == 0 || hPublicKey == 0)
+	short iAttempt = 0;
+	for (; iAttempt < 3; iAttempt++)
 	{
-		// when public key entry does not exist,
-		// we try to locate key id by certificate’s id
-		CK_BBOOL bFalse = CK_FALSE;
-		CK_BBOOL bTrue = CK_TRUE;
-		CK_OBJECT_CLASS iObjectType = CKO_CERTIFICATE;
-		CK_ATTRIBUTE aFindCriteria[] = {
-			{ CKA_CLASS,    &iObjectType, sizeof(CK_OBJECT_CLASS) },
-			{ CKA_TOKEN,    &bTrue,       sizeof(CK_BBOOL) },
-			{ CKA_PRIVATE,  &bFalse,      sizeof(CK_BBOOL) }
+		// setup the find structure to identify the public key on the token
+		CK_OBJECT_CLASS iPublicType = CKO_PUBLIC_KEY;
+		CK_ATTRIBUTE aFindPubCriteria[] = {
+			{ CKA_CLASS,     &iPublicType,  sizeof(CK_OBJECT_CLASS) },
+			{ oAttribute,    pLookupValue,  iLookupSize },
+			{ CKA_KEY_TYPE,  &oType,        sizeof(CK_KEY_TYPE) }
 		};
-		pkcs_lookup_token_cert(userkey->comment, &hSession, &hPublicKey,
-			aFindCriteria, _countof(aFindCriteria), FALSE);
+
+		// get a handle to the session of the token and the public key object
+	    hSession = 0;
+		CK_OBJECT_HANDLE hPublicKey = 0;
+		pkcs_lookup_token_cert(userkey->comment, &hSession,
+			&hPublicKey, aFindPubCriteria, _countof(aFindPubCriteria), TRUE);
+
+		// check for error
 		if (hSession == 0 || hPublicKey == 0)
 		{
-			// error
-			pFunctionList->C_CloseSession(hSession);
-			return NULL;
+			// when public key entry does not exist,
+			// we try to locate key id by certificate’s id
+			CK_BBOOL bFalse = CK_FALSE;
+			CK_BBOOL bTrue = CK_TRUE;
+			CK_OBJECT_CLASS iObjectType = CKO_CERTIFICATE;
+			CK_ATTRIBUTE aFindCriteria[] = {
+				{ CKA_CLASS,    &iObjectType, sizeof(CK_OBJECT_CLASS) },
+				{ CKA_TOKEN,    &bTrue,       sizeof(CK_BBOOL) },
+				{ CKA_PRIVATE,  &bFalse,      sizeof(CK_BBOOL) }
+			};
+			pkcs_lookup_token_cert(userkey->comment, &hSession, &hPublicKey,
+				aFindCriteria, _countof(aFindCriteria), FALSE);
+			if (hSession == 0 || hPublicKey == 0)
+			{
+				// error
+				free(pLookupValue);
+				pFunctionList->C_CloseSession(hSession);
+				return NULL;
+			}
 		}
-	} 
-	// fetch the id of the public key so we can find 
-	// the corresponding private key id
-	CK_ULONG iSize = 0;
-	LPBYTE pSharedKeyId = pkcs_get_attribute_value(pFunctionList,
-		hSession, hPublicKey, CKA_ID, &iSize);
 
-	// check for error
-	if (pSharedKeyId == NULL)
-	{
-		// error
-		pFunctionList->C_CloseSession(hSession);
-		return NULL;
-	}
+		// fetch the id of the public key so we can find 
+		// the corresponding private key id
+		CK_ULONG iSize = 0;
+		LPBYTE pSharedKeyId = pkcs_get_attribute_value(pFunctionList,
+			hSession, hPublicKey, CKA_ID, &iSize);
 
-	// setup the find structure to identify the private key on the token
-	CK_OBJECT_HANDLE iPrivateType = CKO_PRIVATE_KEY;
-	CK_ATTRIBUTE aFindPrivateCriteria[] = {
-		{ CKA_CLASS,    &iPrivateType,	sizeof(CK_OBJECT_CLASS) },
-		{ CKA_ID,		pSharedKeyId,	iSize },
-	};
-
-	// attempt to lookup the private key without logging in
-	CK_OBJECT_HANDLE hPrivateKey;
-	CK_ULONG iCertListSize = 0;
-	if ((pFunctionList->C_FindObjectsInit(hSession, aFindPrivateCriteria, _countof(aFindPrivateCriteria))) != CKR_OK ||
-		pFunctionList->C_FindObjects(hSession, &hPrivateKey, 1, &iCertListSize) != CKR_OK ||
-		pFunctionList->C_FindObjectsFinal(hSession) != CKR_OK)
-	{
-		// error
-		free(pSharedKeyId);
-		pFunctionList->C_CloseSession(hSession);
-		return NULL;
-	}
-
-	// if could not find the key, prompt the user for the pin
-	if (iCertListSize == 0)
-	{
-		LPSTR szPin = cert_pin(userkey->comment, FALSE, NULL);
-		if (szPin == NULL)
+		// check for error
+		if (pSharedKeyId == NULL)
 		{
 			// error
-			free(pSharedKeyId);
+			free(pLookupValue);
 			pFunctionList->C_CloseSession(hSession);
 			return NULL;
 		}
 
-		// login to the card to unlock the private key
-		if (pFunctionList->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)szPin, _mbstrlen(szPin)) != CKR_OK)
-		{
-			// error
-			SecureZeroMemory(szPin, strlen(szPin));
-			free(szPin);
-			free(pSharedKeyId);
-			pFunctionList->C_CloseSession(hSession);
-			return NULL;
-		}
+		// setup the find structure to identify the private key on the token
+		CK_OBJECT_HANDLE iPrivateType = CKO_PRIVATE_KEY;
+		CK_ATTRIBUTE aFindPrivateCriteria[] = {
+			{ CKA_CLASS,    &iPrivateType,	sizeof(CK_OBJECT_CLASS) },
+			{ CKA_ID,		pSharedKeyId,	iSize },
+		};
 
-		// add to pin cache if enabled
-		if (cert_cache_enabled(CERT_QUERY))
-		{
-			cert_pin(userkey->comment, FALSE, szPin);
-		}
-
-		// cleanup creds
-		SecureZeroMemory(szPin, strlen(szPin));
-		free(szPin);
-
-		// attempt to lookup the private key
-		iCertListSize = 0;
-		if ((pFunctionList->C_FindObjectsInit(hSession, aFindPrivateCriteria, _countof(aFindPrivateCriteria))) != CKR_OK ||
+		// attempt to lookup the private key without logging in
+		CK_ULONG iCertListSize = 0;
+		if (pFunctionList->C_FindObjectsInit(hSession, aFindPrivateCriteria, _countof(aFindPrivateCriteria)) != CKR_OK ||
 			pFunctionList->C_FindObjects(hSession, &hPrivateKey, 1, &iCertListSize) != CKR_OK ||
 			pFunctionList->C_FindObjectsFinal(hSession) != CKR_OK)
 		{
 			// error
-			free(pSharedKeyId);
-			pFunctionList->C_CloseSession(hSession);
-			return FALSE;
-		}
-
-		// check for error
-		if (iCertListSize == 0)
-		{
-			// error
+			free(pLookupValue);
 			free(pSharedKeyId);
 			pFunctionList->C_CloseSession(hSession);
 			return NULL;
 		}
+
+		// if could not find the key, prompt the user for the pin
+		if (iCertListSize == 0)
+		{
+			LPSTR szPin = cert_pin(userkey->comment, FALSE, NULL);
+			if (szPin == NULL)
+			{
+				// error
+				free(pLookupValue);
+				free(pSharedKeyId);
+				pFunctionList->C_CloseSession(hSession);
+				return NULL;
+			}
+
+			// login to the card to unlock the private key
+			const int iRet = pFunctionList->C_Login(hSession, CKU_USER, (CK_UTF8CHAR_PTR)szPin, (CK_ULONG)_mbstrlen(szPin));
+
+			if (iRet != CKR_OK)
+			{
+				// error
+				SecureZeroMemory(szPin, strlen(szPin));
+				free(szPin);
+				free(pSharedKeyId);
+				pFunctionList->C_CloseSession(hSession);
+
+				if (iRet == CKR_PIN_INCORRECT || iRet == CKR_PIN_INVALID || iRet == CKR_PIN_LEN_RANGE)
+				{
+					MessageBoxW(NULL, L"Invalid PIN. Please try again.",
+						L"PuTTY PKCS Signing Problem", MB_OK | MB_ICONERROR);
+					continue;
+				}
+
+				WCHAR szMessage[64];
+				(void)swprintf(szMessage, ARRAYSIZE(szMessage), L"Unexpected Error Returned: %08X", iRet);
+				MessageBoxW(NULL, szMessage, L"PuTTY PKCS Signing Problem", MB_OK | MB_ICONERROR);
+				continue;
+			}
+
+			// add to pin cache if enabled
+			if (cert_cache_enabled(CERT_QUERY))
+			{
+				cert_pin(userkey->comment, FALSE, szPin);
+			}
+
+			// cleanup creds
+			SecureZeroMemory(szPin, strlen(szPin));
+			free(szPin);
+
+			// attempt to lookup the private key
+			iCertListSize = 0;
+			if (pFunctionList->C_FindObjectsInit(hSession, aFindPrivateCriteria, _countof(aFindPrivateCriteria)) != CKR_OK ||
+				pFunctionList->C_FindObjects(hSession, &hPrivateKey, 1, &iCertListSize) != CKR_OK ||
+				pFunctionList->C_FindObjectsFinal(hSession) != CKR_OK)
+			{
+				// error
+				free(pLookupValue);
+				free(pSharedKeyId);
+				pFunctionList->C_CloseSession(hSession);
+				return NULL;
+			}
+
+			// check for error
+			if (iCertListSize == 0)
+			{
+				// error
+				free(pLookupValue);
+				pFunctionList->C_CloseSession(hSession);
+				return NULL;
+			}
+
+			// no longer need the shared key identifier
+			free(pSharedKeyId);
+			break;
+		}
 	}
 
-	// no longer need the shared key identifier
-	free(pSharedKeyId);
+	// cleanup lookup
+	free(pLookupValue);
+
+	// too many tries - fail
+	if (iAttempt == 3) return NULL;
 
 	// the message to send contains the static sha1 oid header
 	// followed by a sha1 hash of the data sent from the host

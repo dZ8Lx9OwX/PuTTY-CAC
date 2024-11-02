@@ -121,6 +121,8 @@ BOOL cert_capi_test_hash(LPCSTR szCert, DWORD iHashRequest)
 
 BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDataToSignLen, int* iSigLen, LPCSTR sHashAlgName)
 {
+	printf("Signing %d bytes with hash '%s' and signature type '%s'\r\n", iDataToSignLen, userkey->comment, sHashAlgName);
+
 	// use flags to determine requested signature hash algorithm
 	ALG_ID iHashAlg = CALG_SHA1;
 	LPCWSTR iHashAlgNCrypt = NCRYPT_SHA1_ALGORITHM;
@@ -143,6 +145,7 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 	// sanity check
 	if (hCertStore == NULL || pCertCtx == NULL)
 	{
+		printf("Lookup failed.\r\n");
 		return NULL;
 	}
 
@@ -154,6 +157,11 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 		CertGetCertificateContextProperty(pCertCtx, CERT_KEY_PROV_INFO_PROP_ID,
 			(pProviderInfo = (PCRYPT_KEY_PROV_INFO)snewn(iProviderInfoSize, BYTE)), &iProviderInfoSize) != FALSE)
 	{
+		printf("Provider size: %lu\r\n", iProviderInfoSize);
+		printf("Provider name: %S\r\n", pProviderInfo->pwszProvName);
+		printf("Container name: %S\r\n", pProviderInfo->pwszContainerName);
+		printf("Provider flags: %08X\r\n", pProviderInfo->dwFlags);
+		printf("Provider keyspec: %08X\r\n", pProviderInfo->dwKeySpec);
 		LPBYTE pSig = NULL;
 		DWORD iSig = 0;
 
@@ -165,11 +173,13 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 			pProviderInfo->pwszProvName, pProviderInfo->dwProvType,
 			(pProviderInfo->dwFlags & CRYPT_MACHINE_KEYSET) ? CRYPT_MACHINE_KEYSET : 0) != FALSE)
 		{
+			printf("Crypt library type: Legacy\r\n");
 			// set pin prompt
 			LPSTR szPin = NULL;
 			if (cert_cache_enabled(CERT_QUERY) &&
 				(szPin = cert_pin(userkey->comment, FALSE, NULL)) != NULL)
 			{
+				printf("Using cached PIN.\r\n");
 				CryptSetProvParam(hCryptProv, (pProviderInfo->dwKeySpec ==
 					AT_SIGNATURE) ? PP_SIGNATURE_PIN : PP_KEYEXCHANGE_PIN, (LPCBYTE)szPin, 0);
 			}
@@ -181,6 +191,7 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 				CryptSignHash(hHash, pProviderInfo->dwKeySpec, NULL, 0, NULL, &iSig) != FALSE &&
 				CryptSignHash(hHash, pProviderInfo->dwKeySpec, NULL, 0, pSig = snewn(iSig, BYTE), &iSig) != FALSE)
 			{
+				printf("Signing success.\r\n");
 				cert_reverse_array(pSig, iSig);
 				pSignedData = pSig;
 				*iSigLen = iSig;
@@ -200,11 +211,14 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 		else if (NCryptOpenStorageProvider(&hNCryptProv, pProviderInfo->pwszProvName, 0) == ERROR_SUCCESS &&
 			NCryptOpenKey(hNCryptProv, &hNCryptKey, pProviderInfo->pwszContainerName, pProviderInfo->dwKeySpec, 0) == ERROR_SUCCESS)
 		{
+			printf("Crypt library type: Next Gen\r\n");
+
 			// set pin prompt
 			WCHAR* szPin = NULL;
 			if (cert_cache_enabled(CERT_QUERY) &&
 				(szPin = cert_pin(userkey->comment, TRUE, NULL)) != NULL)
 			{
+				printf("Using cached PIN.\r\n");
 				DWORD iLength = (1 + wcslen(szPin)) * sizeof(WCHAR);
 				(void)NCryptSetProperty(hNCryptKey, NCRYPT_PIN_PROPERTY, (PBYTE)szPin, iLength, 0);
 			}
@@ -223,10 +237,12 @@ BYTE* cert_capi_sign(struct ssh2_userkey* userkey, LPCBYTE pDataToSign, int iDat
 			// hash and sign
 			DWORD iHashDataSize = 0;
 			LPBYTE pHashData = cert_get_hash(sHashAlgName, pDataToSign, iDataToSignLen, &iHashDataSize, FALSE);
+			if (pHashData == NULL) printf("Hash failure.\r\n");
 			if (pHashData != NULL &&
 				NCryptSignHash(hNCryptKey, pPadInfo, pHashData, iHashDataSize, NULL, 0, &iSig, iPadFlag) == ERROR_SUCCESS &&
 				NCryptSignHash(hNCryptKey, pPadInfo, pHashData, iHashDataSize, pSig = snewn(iSig, BYTE), iSig, &iSig, iPadFlag) == ERROR_SUCCESS)
 			{
+				printf("Signing success.\r\n");
 				pSignedData = pSig;
 				*iSigLen = iSig;
 				pSig = NULL;
